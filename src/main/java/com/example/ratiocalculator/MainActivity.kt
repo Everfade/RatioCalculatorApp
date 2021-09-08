@@ -2,15 +2,13 @@ package com.example.ratiocalculator
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.ContentValues
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.drawable.Drawable
+import android.graphics.Matrix
 import android.media.Image
 import android.net.Uri
-import android.opengl.Visibility
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -20,8 +18,9 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.ImageView
+import android.widget.TextView
 import android.widget.Toast
-import androidx.annotation.NonNull
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -29,10 +28,10 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.navigateUp
-import androidx.navigation.ui.setupActionBarWithNavController
 import com.example.ratiocalculator.databinding.ActivityMainBinding
-import com.google.android.material.snackbar.Snackbar
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.MobileAds
+import kotlinx.android.synthetic.main.activity_analyzer.*
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
 import java.io.FileOutputStream
@@ -48,7 +47,7 @@ typealias LumaListener = (luma: Double) -> Unit
 class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
-    private lateinit var binding: ActivityMainBinding
+   private lateinit var binding: ActivityMainBinding
     private var cameraAvailable = false
     private var imageCapture = ImageCapture.Builder().build()
     private lateinit var outputDirectory: File
@@ -56,55 +55,91 @@ class MainActivity : AppCompatActivity() {
     lateinit var takenImage: Image;
     lateinit var imagePath:String;
 
+
+    private val pickImage = 100
     override fun onCreate(savedInstanceState: Bundle?) {
+        setTheme(R.style.Theme_RatioCalculator)
         super.onCreate(savedInstanceState)
 
-        binding = ActivityMainBinding.inflate(layoutInflater)
+      binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        setSupportActionBar(binding.toolbar)
-
+        setSupportActionBar(binding.toolbar4)
+        toolbar4.setTitle("Ratio Calculator")
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         appBarConfiguration = AppBarConfiguration(navController.graph)
-        setupActionBarWithNavController(navController, appBarConfiguration)
+       // setupActionBarWithNavController(navController, appBarConfiguration)
         binding.fab.setOnClickListener { view ->
-            Snackbar.make(view, "Starting Camera", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show()
+         //   Snackbar.make(view, "Starting Camera", Snackbar.LENGTH_LONG)
+               // .setAction("Action", null).show()
             // Request camera permissions
             if (allPermissionsGranted() && isStoragePermissionGranted()) {
                 startCamera()
             } else {
-                ActivityCompat.requestPermissions(
-                    this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS
-                )
+                ActivityCompat.requestPermissions(this, REQUIRED_PERMISSIONS, REQUEST_CODE_PERMISSIONS)
             }
-            //Set up the listener for take photo button
+            select_from_galary_button.visibility=View.INVISIBLE;
+            fab.visibility=View.INVISIBLE
+            adView2.visibility=View.INVISIBLE
+
             camera_capture_button.setOnClickListener { takePhoto() }
         }
         analyze_image_button.setOnClickListener {
             val intent = Intent(this@MainActivity, AnalyzerActivity::class.java);
-            //intent.putExtra("imageData",takenImage.planes[0].buffer.toByteArray())
             intent.putExtra("imagePath",imagePath)
             startActivity(intent)
         }
         viewFinder.visibility= View.INVISIBLE
         outputDirectory = getOutputDirectory()
         cameraExecutor = Executors.newSingleThreadExecutor()
+        // IMAGE FROM GALLERY
+        select_from_galary_button.setOnClickListener{
+            val gallery = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI)
+            startActivityForResult(gallery, pickImage)
+        }
+        MobileAds.initialize(this@MainActivity)
+        val adRequest= AdRequest.Builder().build()
+        adView2.loadAd(adRequest)
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if(resultCode== RESULT_OK && requestCode==pickImage){
+            imagePath=data?.data.toString()
+            var temp=getRealPathFromURI(imagePath)
+            if(temp != null){
+                imagePath=temp
+                val image= File(imagePath.replace("file:","")).inputStream()
+                var bitmap= BitmapFactory.decodeStream(image).rotate(90f)
+                capturedImageView.setImageBitmap(bitmap)
+                capturedImageView.visibility=View.VISIBLE
+                analyze_image_button.visibility=View.VISIBLE;
+
+            }
+            else
+            {
+                // error loading Image
+            }
+        }
+    }
+      @RequiresApi(Build.VERSION_CODES.O)
+      fun getRealPathFromURI(contentUri: String): String? {
+        var proj={MediaStore.Images.Media.DATA};
+        var cursor = contentResolver.query(Uri.parse( contentUri),null,null,null)
+        var column_index = cursor?.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+          if (cursor != null) {
+              cursor.moveToFirst()
+        return column_index?.let { cursor.getString(it) };
+          };
+          return null
+    }
     private fun takePhoto() {
         if (!cameraAvailable) return
-        // Get a stable reference of the modifiable image capture use case
         val imageCapture = imageCapture
-        // Create time-stamped output file to hold the image
         val photoFile = File(
             outputDirectory,
-            SimpleDateFormat(
-                FILENAME_FORMAT, Locale.GERMAN
-            ).format(System.currentTimeMillis()) + ".jpg"
-        )
-        // Create output options object which contains file + metadata
-        imageCapture.takePicture(ContextCompat.getMainExecutor(this), object :
+            SimpleDateFormat(FILENAME_FORMAT, Locale.GERMAN).format(System.currentTimeMillis()) + ".jpg")
+            imageCapture.takePicture(ContextCompat.getMainExecutor(this), object :
             ImageCapture.OnImageCapturedCallback() {
             @SuppressLint("UnsafeOptInUsageError")
             override fun onCaptureSuccess(image: ImageProxy) {
@@ -112,12 +147,12 @@ class MainActivity : AppCompatActivity() {
                 takenImage= image.image!!
                 val buffer= takenImage!!.planes[0].buffer
                 val data =buffer.toByteArray()
-                var bm= BitmapFactory.decodeByteArray(data,0, data.size)
-
+                var bm= BitmapFactory.decodeByteArray(data,0, data.size).rotate(90f)
                 var view= findViewById<ImageView>(R.id.capturedImageView)
-                //     saveImage(bm,"test")
                 view.setImageBitmap(bm)
                 view.visibility=View.VISIBLE
+                fab.visibility=View.VISIBLE
+                select_from_galary_button.visibility=View.VISIBLE
                 camera_capture_button.visibility=View.INVISIBLE;
             }
         })
@@ -129,16 +164,12 @@ class MainActivity : AppCompatActivity() {
                 override fun onError(exc: ImageCaptureException) {
                     Log.e(TAG, "Photo capture failed: ${exc.message}", exc)
                 }
-
                 @SuppressLint("RestrictedApi")
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-
                     val savedUri = Uri.fromFile(photoFile)
                     imagePath=savedUri.toString()
                     val msg = "Photo capture succeeded: $savedUri"
-                    Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
-                    Log.d(TAG, msg)
-
+                  //  Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
                     cameraExecutor.shutdownNow()
                     val cameraProviderFuture = ProcessCameraProvider.getInstance(this@MainActivity)
                     val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
@@ -148,16 +179,20 @@ class MainActivity : AppCompatActivity() {
                     analyze_image_button.visibility=View.VISIBLE
                     viewFinder
                     cameraAvailable = false
+                    adView2.visibility=View.VISIBLE
 
                 }
             }
         )
     }
+    fun Bitmap.rotate(degrees: Float): Bitmap {
+        val matrix = Matrix().apply { postRotate(degrees) }
+        return Bitmap.createBitmap(this, 0, 0, width, height, matrix, true)
+    }
      fun   saveImage(  bitmap:Bitmap,     name:String)       {
         var saved:Bitmap;
          val IMAGES_FOLDER_NAME="RatioAnalyzerImages"
         var fos: OutputStream;
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             var resolver =  getApplicationContext().getContentResolver()
             var contentValues =   ContentValues();
@@ -169,17 +204,13 @@ class MainActivity : AppCompatActivity() {
         } else {
             var imagesDir = Environment.getExternalStoragePublicDirectory(
                     Environment.DIRECTORY_DCIM).toString() + File.separator + IMAGES_FOLDER_NAME;
-
             var file =   File(imagesDir);
-
             if (!file.exists()) {
                 file.mkdir();
             }
             var image =   File(imagesDir, name + ".png");
             fos =   FileOutputStream(image)
-
         }
-
          bitmap.compress( Bitmap.CompressFormat.PNG, 100, fos);
          saved= bitmap;
         fos.flush();
@@ -199,35 +230,23 @@ class MainActivity : AppCompatActivity() {
         view.visibility=View.INVISIBLE
         viewFinder.visibility = View.VISIBLE
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
-
         cameraProviderFuture.addListener({
-            // Used to bind the lifecycle of cameras to the lifecycle owner
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
-
-
-            // Preview
             val preview = Preview.Builder()
-                .build()
-                .also {
+                .build().also {
                     it.setSurfaceProvider(viewFinder.surfaceProvider)
                 }
-            // Select back camera as a default
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-
             try {
                 // Unbind use cases before rebinding
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, imageCapture)
                 // Bind use cases to camera
-                cameraProvider.bindToLifecycle(
-                    this, cameraSelector, preview, imageCapture
-                )
-
+                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
             } catch (exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
             }
-
         }, ContextCompat.getMainExecutor(this))
     }
 
@@ -263,7 +282,6 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-
     companion object {
         private const val TAG = "CameraXBasic"
         private const val FILENAME_FORMAT = "yyyy-MM-dd-HH-mm-ss-SSS"
@@ -275,7 +293,7 @@ class MainActivity : AppCompatActivity() {
         super.onDestroy()
         cameraExecutor.shutdown()
     }
-    public  fun isStoragePermissionGranted(): Boolean {
+       fun isStoragePermissionGranted(): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 == PackageManager.PERMISSION_GRANTED) {
@@ -310,9 +328,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    override fun onSupportNavigateUp(): Boolean {
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
-        return navController.navigateUp(appBarConfiguration)
-                || super.onSupportNavigateUp()
-    }
+  //  override fun onSupportNavigateUp(): Boolean {
+  //      val navController = findNavController(R.id.nav_host_fragment_content_main)
+        //return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+   // }
 }

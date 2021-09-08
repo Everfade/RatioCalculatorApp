@@ -1,18 +1,107 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/constraintLayout2"
     android:layout_width="match_parent"
-
     android:layout_height="match_parent"
+    android:background="@drawable/gradient_background"
     tools:context=".AnalyzerActivity">
+
+    <!-- Discrete slider -->
+
     <ImageView
         android:id="@+id/analyzed_image_View"
+        android:layout_width="358dp"
+        android:layout_height="421dp"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.509"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.283"
+        tools:ignore="MissingConstraints"
+        tools:srcCompat="@tools:sample/backgrounds/scenic" />
+
+    <com.google.android.gms.ads.AdView
+        android:id="@+id/adView3"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:visibility="invisible"
-        android:layout_gravity="center_horizontal|center"
-        tools:srcCompat="@tools:sample/backgrounds/scenic"
-        tools:ignore="MissingConstraints" />
+        app:adSize="BANNER"
 
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+        app:adUnitId="ca-app-pub-2045670594931836/6983218586"
+        app:layout_constraintBottom_toBottomOf="parent"
+
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.494"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0"
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/greetingTextView"
+        android:layout_width="294dp"
+        android:layout_height="66dp"
+        android:gravity="center_horizontal|center_vertical"
+
+        android:text="Adjust Threshold Until  The Rectangle Is Marked"
+        android:textColor="#000000"
+        android:textSize="20sp"
+        app:layout_constraintBottom_toTopOf="@+id/analyzed_image_View"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.525"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+
+        app:layout_constraintVertical_bias="0.328"
+        tools:text="Adjust Threshold Until  The Rectangle Is Marked" />
+
+    <SeekBar
+        android:id="@+id/seekBar2"
+        style="@style/Widget.AppCompat.SeekBar.Discrete"
+        android:layout_width="356dp"
+        android:layout_height="27dp"
+        android:max="253"
+        android:progress="1"
+        app:layout_constraintBottom_toTopOf="@+id/adView3"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.472"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/analyzed_image_View"
+        app:layout_constraintVertical_bias="0.677" />
+
+    <TextView
+        android:id="@+id/textViewSeekBar"
+        android:layout_width="115dp"
+        android:layout_height="24dp"
+        android:layout_marginBottom="12dp"
+        android:layout_marginTop="23dp"
+        android:gravity="center_horizontal|center_vertical"
+        android:text="Threshold"
+        android:textColor="#000000"
+        app:layout_constraintBottom_toTopOf="@+id/seekBar2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.087"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/analyzed_image_View" />
+
+    <Switch
+        android:id="@+id/showProcessedImageToggle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="9dp"
+        android:layout_marginTop="23dp"
+        android:text="Processed Image"
+        android:textColor="#000000"
+        app:layout_constraintBottom_toTopOf="@+id/seekBar2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.894"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/analyzed_image_View" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
